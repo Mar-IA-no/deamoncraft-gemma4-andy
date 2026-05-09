@@ -1,7 +1,7 @@
 {
   "version": "gemma-andy-tools-v2",
   "schema_notes": [
-    "Brief 2026-05-03 says 68 tools, while category tables enumerate 69 if sprint_attack is counted separately.",
+    "The schema declares 68 tools while a strict category enumeration would yield 69 if sprint_attack were counted separately.",
     "To preserve the declared 68-tool contract, sprint_attack is represented as attack_entity.arguments.attack_style='sprint' instead of a separate tool.",
     "executor_supported means the current DaemonCraft/Mineflayer executor can dispatch the tool today. The model may be trained with unsupported tools; clients filter allowed_tools per turn."
   ],
