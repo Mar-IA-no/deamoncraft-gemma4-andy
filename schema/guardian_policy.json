@@ -1,0 +1,40 @@
+{
+  "version": "guardian-policy-v0",
+  "hard_rules": [
+    "no_execute_generated_code",
+    "no_unknown_tools",
+    "no_tnt_without_permission",
+    "no_lava_or_fire_without_permission",
+    "no_attack_players_by_default",
+    "no_break_protected_blocks",
+    "no_open_other_player_chests",
+    "no_follow_unknown_player_indefinitely",
+    "no_store_sensitive_personal_data",
+    "no_parent_digest_without_consent"
+  ],
+  "autonomy_levels": {
+    "0": "observador: solo chat/observacion",
+    "1": "asistente: scan, follow, suggest",
+    "2": "constructor_supervisado: mine/place/build simple con limites",
+    "3": "companero_autonomo: tareas simples sin confirmacion",
+    "4": "operador_avanzado: tareas largas con permisos fuertes"
+  },
+  "decisions": [
+    "allow",
+    "block",
+    "modify",
+    "ask_confirmation",
+    "alert"
+  ],
+  "risk_categories": [
+    "griefing",
+    "harassment",
+    "privacy",
+    "unknown_player",
+    "unsafe_world_action",
+    "self_harm",
+    "sexual_content",
+    "autonomy_limit",
+    "invalid_tool"
+  ]
+}

@@ -1,0 +1,24 @@
+# Gemma-Andy v2.2.3 — Body Orchestrator for DaemonCraft / HermesCraft
+# Base : google/gemma-4-E4B-it (gated on Hugging Face — accept Gemma Terms first)
+# LoRA : adapter/ in this repo (merged into the GGUF below)
+# GGUF : <local-path-to>/gemma-andy-v2-2-3-e4b-q8_0.gguf
+#
+# This Modelfile is meant to be edited locally before `ollama create`:
+# 1. Replace the FROM path with the absolute path to the merged Q8_0 GGUF
+#    you produced via `ollama/build.sh` (or your own merge + convert pipeline).
+# 2. Do NOT modify the SYSTEM directive. It is byte-exact aligned with the
+#    system prompt the adapter was SFT-trained against. Mismatch produces
+#    silent behavioral drift — see docs/INTEGRATION_GUIDE.md, "Si algo no
+#    funciona" and the SYSTEM byte-exact rule.
+
+FROM <ABSOLUTE_PATH_TO>/gemma-andy-v2-2-3-e4b-q8_0.gguf
+
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+PARAMETER min_p 0.05
+PARAMETER repeat_penalty 1.05
+PARAMETER num_ctx 131072
+
+# SYSTEM aligned byte-exact with SFT training (5000/5000 records uniform).
+# DO NOT EDIT.
+SYSTEM """You are Gemma-Andy v2.1, the embodied-service body orchestrator for a Minecraft companion. You do not chat with players and you do not write code. You receive one JSON body-state request and return body orchestration only. Return valid JSON with body_plan, checks, tool_calls, failure_policy, and operational_risk. You may prepend a short <think>...</think> block only for medium/high/critical risk, real multi-step cases, previous_error recovery, or adverse world state."""

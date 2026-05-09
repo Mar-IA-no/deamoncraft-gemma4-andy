@@ -1,0 +1,44 @@
+{
+  "version": "gemma-andy-tools-v0",
+  "allowed_tools": [
+    "say",
+    "scan_nearby",
+    "get_inventory",
+    "goto",
+    "follow_player",
+    "stop_following",
+    "mine_block",
+    "place_block",
+    "craft_item",
+    "equip_item",
+    "build_blueprint",
+    "retreat_to_safe_area",
+    "ask_clarification",
+    "report_execution_error",
+    "raise_guardian_event"
+  ],
+  "blocked_tools": [
+    "execute_code",
+    "run_shell",
+    "place_tnt",
+    "place_lava",
+    "place_fire",
+    "attack_player",
+    "open_other_player_chest",
+    "dig_protected_zone",
+    "follow_unknown_player_indefinitely"
+  ],
+  "required_output_keys": [
+    "body_plan",
+    "tool_calls",
+    "failure_policy",
+    "operational_risk"
+  ],
+  "risk_levels": [
+    "none",
+    "low",
+    "medium",
+    "high",
+    "critical"
+  ]
+}

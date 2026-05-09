@@ -1,0 +1,827 @@
+{
+  "version": "gemma-andy-tools-v2",
+  "schema_notes": [
+    "Brief 2026-05-03 says 68 tools, while category tables enumerate 69 if sprint_attack is counted separately.",
+    "To preserve the declared 68-tool contract, sprint_attack is represented as attack_entity.arguments.attack_style='sprint' instead of a separate tool.",
+    "executor_supported means the current DaemonCraft/Mineflayer executor can dispatch the tool today. The model may be trained with unsupported tools; clients filter allowed_tools per turn."
+  ],
+  "risk_levels": [
+    "none",
+    "low",
+    "medium",
+    "high",
+    "critical"
+  ],
+  "required_output_keys": [
+    "body_plan",
+    "checks",
+    "tool_calls",
+    "failure_policy",
+    "operational_risk"
+  ],
+  "blocked_tools": [
+    "execute_code",
+    "run_shell",
+    "place_tnt",
+    "place_lava",
+    "place_fire",
+    "attack_player",
+    "open_other_player_chest",
+    "dig_protected_zone",
+    "follow_unknown_player_indefinitely",
+    "splash_potion_at_player",
+    "enchant_with_unauthorized_book",
+    "repair_with_player_items_without_consent",
+    "mount_player",
+    "trade_griefing"
+  ],
+  "allowed_tools": [
+    {
+      "name": "scan_nearby",
+      "category": "perception",
+      "executor_supported": true,
+      "args_schema": {
+        "radius": "int optional default 16",
+        "blocks": "list[str]? optional",
+        "entities": "list[str]? optional"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_perceive.scan."
+    },
+    {
+      "name": "look_at",
+      "category": "perception",
+      "executor_supported": false,
+      "args_schema": {
+        "target_type": [
+          "entity",
+          "position",
+          "block"
+        ],
+        "target": "EntityRef | Position3D | BlockType"
+      },
+      "risk_default": "none",
+      "notes": "New endpoint required. Physical gaze/orientation only."
+    },
+    {
+      "name": "check_world_state",
+      "category": "perception",
+      "executor_supported": false,
+      "args_schema": {
+        "fields": "list[str] subset of: time, weather, light, biome, dimension, player_health, bot_health, hunger, nearby_entities, hazards, zone_owner, inventory_count"
+      },
+      "risk_default": "none",
+      "notes": "New endpoint required for expanded world metadata. Pass narrow field lists to limit response size."
+    },
+    {
+      "name": "take_screenshot",
+      "category": "perception",
+      "executor_supported": true,
+      "args_schema": {
+        "reason": "str optional"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_screenshot."
+    },
+    {
+      "name": "look_around",
+      "category": "perception",
+      "executor_supported": false,
+      "args_schema": {
+        "sweep_degrees": "int optional default 360",
+        "steps": "int optional default 8"
+      },
+      "risk_default": "none",
+      "notes": "New endpoint required for a sweep scan."
+    },
+    {
+      "name": "goto",
+      "category": "movement",
+      "executor_supported": true,
+      "args_schema": {
+        "target_type": [
+          "coords",
+          "block",
+          "entity",
+          "remembered_place"
+        ],
+        "target": "Position3D | BlockType | EntityRef | PlaceName",
+        "max_distance": "int? optional",
+        "stop_on_arrival": "bool optional default true",
+        "avoid_hazards": "bool optional default true"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_move.goto."
+    },
+    {
+      "name": "follow",
+      "category": "movement",
+      "executor_supported": true,
+      "args_schema": {
+        "target": "EntityRef usually player",
+        "distance": "int optional default 3",
+        "avoid_hazards": "bool optional default true"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_move.follow. Unknown-player stalking remains blocked via follow_unknown_player_indefinitely."
+    },
+    {
+      "name": "stop_movement",
+      "category": "movement",
+      "executor_supported": true,
+      "args_schema": {
+        "reason": "str optional"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_move.stop."
+    },
+    {
+      "name": "move_away",
+      "category": "movement",
+      "executor_supported": true,
+      "args_schema": {
+        "from": "EntityRef | Position3D | HazardRef",
+        "distance": "int optional default 8"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_combat.flee for non-combat distancing."
+    },
+    {
+      "name": "mount",
+      "category": "movement",
+      "executor_supported": false,
+      "args_schema": {
+        "target": "boat | minecart | horse | EntityRef"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required. mount_player is blocked."
+    },
+    {
+      "name": "dismount",
+      "category": "movement",
+      "executor_supported": false,
+      "args_schema": {
+        "reason": "str optional"
+      },
+      "risk_default": "none",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "jump",
+      "category": "movement",
+      "executor_supported": false,
+      "args_schema": {
+        "count": "int optional default 1"
+      },
+      "risk_default": "none",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "sneak",
+      "category": "movement",
+      "executor_supported": true,
+      "args_schema": {
+        "enabled": "bool"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_combat.sneak."
+    },
+    {
+      "name": "sprint",
+      "category": "movement",
+      "executor_supported": false,
+      "args_schema": {
+        "enabled": "bool"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "swim_to",
+      "category": "movement",
+      "executor_supported": false,
+      "args_schema": {
+        "target": "Position3D",
+        "avoid_drowning": "bool optional default true"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "mine_block",
+      "category": "mining",
+      "executor_supported": true,
+      "args_schema": {
+        "block": "BlockType",
+        "quantity": "int optional default 1",
+        "near_player": "bool optional"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_mine.dig for targeted block mining."
+    },
+    {
+      "name": "mine_blocks",
+      "category": "mining",
+      "executor_supported": true,
+      "args_schema": {
+        "block": "BlockType",
+        "quantity": "int",
+        "max_radius": "int optional default 16"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_mine.collect."
+    },
+    {
+      "name": "dig_direction",
+      "category": "mining",
+      "executor_supported": false,
+      "args_schema": {
+        "direction": [
+          "down",
+          "up",
+          "forward"
+        ],
+        "steps": "int",
+        "place_torches": "bool optional"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required. Must respect protected-zone constraints."
+    },
+    {
+      "name": "collect_drops",
+      "category": "mining",
+      "executor_supported": true,
+      "args_schema": {
+        "items": "list[str]? optional",
+        "radius": "int optional default 8"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_mine.pickup."
+    },
+    {
+      "name": "place_block",
+      "category": "building",
+      "executor_supported": true,
+      "args_schema": {
+        "block": "BlockType",
+        "position": "Position3D | relative ref",
+        "count": "int optional default 1"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_build.place."
+    },
+    {
+      "name": "fill_volume",
+      "category": "building",
+      "executor_supported": true,
+      "args_schema": {
+        "block": "BlockType",
+        "from": "Position3D",
+        "to": "Position3D",
+        "max_blocks": "int"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_build.fill. Must respect volume and protected-zone limits."
+    },
+    {
+      "name": "demolish_volume",
+      "category": "building",
+      "executor_supported": false,
+      "args_schema": {
+        "from": "Position3D",
+        "to": "Position3D",
+        "max_blocks": "int",
+        "materials_only": "list[str]? optional"
+      },
+      "risk_default": "high",
+      "notes": "New endpoint required. High griefing risk."
+    },
+    {
+      "name": "build_blueprint",
+      "category": "building",
+      "executor_supported": true,
+      "args_schema": {
+        "blueprint": "BlueprintName",
+        "origin": "Position3D | relative ref",
+        "materials_check": "bool optional default true"
+      },
+      "risk_default": "medium",
+      "notes": "Partially supported via mc_build actions."
+    },
+    {
+      "name": "ignite",
+      "category": "building",
+      "executor_supported": true,
+      "args_schema": {
+        "target": "BlockRef",
+        "purpose": "str"
+      },
+      "risk_default": "high",
+      "notes": "Maps to mc_build.ignite. place_fire remains blocked; only controlled ignition with constraints."
+    },
+    {
+      "name": "place_liquid",
+      "category": "building",
+      "executor_supported": false,
+      "args_schema": {
+        "liquid": [
+          "water",
+          "lava"
+        ],
+        "position": "Position3D",
+        "containment": "bool optional default true"
+      },
+      "risk_default": "high",
+      "notes": "New endpoint required. Lava placement must be blocked unless explicitly safe and permitted."
+    },
+    {
+      "name": "pickup_liquid",
+      "category": "building",
+      "executor_supported": false,
+      "args_schema": {
+        "liquid": [
+          "water",
+          "lava"
+        ],
+        "source_position": "Position3D"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "light_area",
+      "category": "building",
+      "executor_supported": false,
+      "args_schema": {
+        "radius": "int",
+        "light_item": "torch | lantern optional",
+        "avoid_claimed_blocks": "bool optional default true"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "craft_item",
+      "category": "crafting",
+      "executor_supported": true,
+      "args_schema": {
+        "item": "ItemType",
+        "quantity": "int",
+        "use_crafting_table": "bool optional"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_craft.craft."
+    },
+    {
+      "name": "view_craftable",
+      "category": "crafting",
+      "executor_supported": true,
+      "args_schema": {
+        "filter": "str optional"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_craft.recipes."
+    },
+    {
+      "name": "smelt_item",
+      "category": "crafting",
+      "executor_supported": true,
+      "args_schema": {
+        "item": "ItemType",
+        "quantity": "int",
+        "fuel": "ItemType optional"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_craft.smelt_start."
+    },
+    {
+      "name": "check_furnace",
+      "category": "crafting",
+      "executor_supported": true,
+      "args_schema": {
+        "furnace_ref": "BlockRef optional"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_craft.furnace_check."
+    },
+    {
+      "name": "take_from_furnace",
+      "category": "crafting",
+      "executor_supported": true,
+      "args_schema": {
+        "furnace_ref": "BlockRef optional",
+        "items": "list[str]? optional"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_craft.furnace_take."
+    },
+    {
+      "name": "enchant_item",
+      "category": "crafting",
+      "executor_supported": false,
+      "args_schema": {
+        "item_slot": "int 0-35",
+        "level": "int 1-30",
+        "lapis_required": "int >= 1"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required. Unauthorized book/player-item usage is blocked."
+    },
+    {
+      "name": "repair_item",
+      "category": "crafting",
+      "executor_supported": false,
+      "args_schema": {
+        "item_slot": "int 0-35",
+        "material": "ItemType",
+        "use_anvil": "bool default true"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required. Repair with player items without consent is blocked."
+    },
+    {
+      "name": "get_inventory",
+      "category": "inventory",
+      "executor_supported": true,
+      "args_schema": {
+        "include_equipment": "bool optional default true",
+        "filter": "string optional: tools | food | blocks | armor | weapons | resources | all (null = no filter)",
+        "sort_by": "string optional: slot | count | name | category (null = native order)",
+        "slot_range": "[int, int] optional: e.g. [0, 8] hotbar, [9, 35] main, [36, 39] armor, null = all slots"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_perceive.inventory. Optional args narrow the snapshot for efficiency."
+    },
+    {
+      "name": "equip_item",
+      "category": "inventory",
+      "executor_supported": true,
+      "args_schema": {
+        "item": "ItemType",
+        "slot": "hand | offhand | head | torso | legs | feet optional"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_combat.equip."
+    },
+    {
+      "name": "unequip",
+      "category": "inventory",
+      "executor_supported": false,
+      "args_schema": {
+        "slot": "hand | offhand | head | torso | legs | feet"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "toss_item",
+      "category": "inventory",
+      "executor_supported": true,
+      "args_schema": {
+        "item": "ItemType",
+        "quantity": "int",
+        "target": "EntityRef | Position3D optional"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_build.toss. Use for giving items physically; Hermes handles wording."
+    },
+    {
+      "name": "pickup_item",
+      "category": "inventory",
+      "executor_supported": true,
+      "args_schema": {
+        "item": "ItemType optional",
+        "radius": "int optional default 8"
+      },
+      "risk_default": "low",
+      "notes": "Implicitly supported by proximity/pickup behavior."
+    },
+    {
+      "name": "put_in_chest",
+      "category": "inventory",
+      "executor_supported": true,
+      "args_schema": {
+        "item": "ItemType",
+        "quantity": "int",
+        "chest_ref": "BlockRef optional"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_manage.deposit."
+    },
+    {
+      "name": "take_from_chest",
+      "category": "inventory",
+      "executor_supported": true,
+      "args_schema": {
+        "item": "ItemType",
+        "quantity": "int",
+        "chest_ref": "BlockRef optional"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_manage.withdraw. Other-player chest access is blocked."
+    },
+    {
+      "name": "view_chest",
+      "category": "inventory",
+      "executor_supported": true,
+      "args_schema": {
+        "chest_ref": "BlockRef optional",
+        "owner_context": "self | shared | other_player optional"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_manage.chest. Other-player chest access requires Guardian handling."
+    },
+    {
+      "name": "consume_food",
+      "category": "consumables",
+      "executor_supported": true,
+      "args_schema": {
+        "food": "ItemType optional",
+        "min_hunger_before": "int optional"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_combat.eat."
+    },
+    {
+      "name": "drink_potion",
+      "category": "consumables",
+      "executor_supported": false,
+      "args_schema": {
+        "potion": "ItemType",
+        "reason": "str"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "throw_projectile",
+      "category": "consumables",
+      "executor_supported": false,
+      "args_schema": {
+        "projectile": "potion | ender_pearl | snowball | egg",
+        "target": "EntityRef | Position3D",
+        "intent": "str"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required. Harmful splash potion at player is blocked."
+    },
+    {
+      "name": "apply_bonemeal",
+      "category": "consumables",
+      "executor_supported": true,
+      "args_schema": {
+        "target": "BlockRef | crop type",
+        "quantity": "int optional default 1"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_build.bonemeal."
+    },
+    {
+      "name": "attack_entity",
+      "category": "combat",
+      "executor_supported": true,
+      "args_schema": {
+        "target": "EntityRef non-player hostile",
+        "attack_style": "normal | crit | sprint optional",
+        "stop_if_player": "bool default true"
+      },
+      "risk_default": "high",
+      "notes": "Maps to mc_combat.attack. Player targets are blocked as attack_player."
+    },
+    {
+      "name": "shoot_bow",
+      "category": "combat",
+      "executor_supported": true,
+      "args_schema": {
+        "target": "EntityRef non-player hostile",
+        "max_shots": "int optional"
+      },
+      "risk_default": "high",
+      "notes": "Maps to mc_combat.shoot."
+    },
+    {
+      "name": "shoot_crossbow",
+      "category": "combat",
+      "executor_supported": false,
+      "args_schema": {
+        "target": "EntityRef non-player hostile",
+        "max_shots": "int optional"
+      },
+      "risk_default": "high",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "raise_shield",
+      "category": "combat",
+      "executor_supported": true,
+      "args_schema": {
+        "duration_seconds": "int optional"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_combat.shield."
+    },
+    {
+      "name": "crit_attack",
+      "category": "combat",
+      "executor_supported": true,
+      "args_schema": {
+        "target": "EntityRef non-player hostile",
+        "max_attempts": "int optional default 1"
+      },
+      "risk_default": "high",
+      "notes": "Maps to mc_combat.crit."
+    },
+    {
+      "name": "strafe",
+      "category": "combat",
+      "executor_supported": true,
+      "args_schema": {
+        "around": "EntityRef hostile",
+        "duration_seconds": "int"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_combat.strafe."
+    },
+    {
+      "name": "flee_from",
+      "category": "combat",
+      "executor_supported": true,
+      "args_schema": {
+        "threat": "EntityRef | HazardRef",
+        "distance": "int optional default 12"
+      },
+      "risk_default": "medium",
+      "notes": "Maps to mc_combat.flee. Replaces v1 retreat_to_safe_area."
+    },
+    {
+      "name": "till_soil",
+      "category": "farming",
+      "executor_supported": true,
+      "args_schema": {
+        "area": "AreaRef | around_player",
+        "count": "int"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_build.till."
+    },
+    {
+      "name": "plant_crop",
+      "category": "farming",
+      "executor_supported": false,
+      "args_schema": {
+        "crop": "ItemType",
+        "area": "AreaRef | around_player",
+        "count": "int"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "harvest_crop",
+      "category": "farming",
+      "executor_supported": false,
+      "args_schema": {
+        "crop": "ItemType optional",
+        "area": "AreaRef | around_player",
+        "replant": "bool optional default true"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "breed_animals",
+      "category": "farming",
+      "executor_supported": false,
+      "args_schema": {
+        "animal": "cow | sheep | pig | chicken",
+        "food": "ItemType",
+        "pair_count": "int optional default 1"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "collect_animal_product",
+      "category": "farming",
+      "executor_supported": false,
+      "args_schema": {
+        "animal": "cow | sheep | chicken",
+        "product": "milk | wool | egg",
+        "quantity": "int optional"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "fish",
+      "category": "fishing",
+      "executor_supported": true,
+      "args_schema": {
+        "casts": "int optional",
+        "until_item": "ItemType optional"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_build.fish."
+    },
+    {
+      "name": "view_villager_trades",
+      "category": "villagers",
+      "executor_supported": false,
+      "args_schema": {
+        "villager_ref": "EntityRef",
+        "max_distance": "int optional default 4"
+      },
+      "risk_default": "low",
+      "notes": "New endpoint required."
+    },
+    {
+      "name": "trade_with_villager",
+      "category": "villagers",
+      "executor_supported": false,
+      "args_schema": {
+        "villager_ref": "EntityRef",
+        "trade_index": "int",
+        "max_trades": "int optional default 1"
+      },
+      "risk_default": "medium",
+      "notes": "New endpoint required. trade_griefing is blocked."
+    },
+    {
+      "name": "sleep",
+      "category": "sleep",
+      "executor_supported": true,
+      "args_schema": {
+        "bed_ref": "BlockRef optional",
+        "only_if_night": "bool optional default true"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_build.sleep."
+    },
+    {
+      "name": "remember_here",
+      "category": "physical_memory",
+      "executor_supported": true,
+      "args_schema": {
+        "name": "PlaceName",
+        "description": "str optional"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_manage.mark."
+    },
+    {
+      "name": "goto_remembered_place",
+      "category": "physical_memory",
+      "executor_supported": true,
+      "args_schema": {
+        "name": "PlaceName"
+      },
+      "risk_default": "low",
+      "notes": "Maps to mc_manage.go_mark."
+    },
+    {
+      "name": "forget_place",
+      "category": "physical_memory",
+      "executor_supported": true,
+      "args_schema": {
+        "name": "PlaceName"
+      },
+      "risk_default": "none",
+      "notes": "Maps to mc_manage.unmark."
+    },
+    {
+      "name": "ask_clarification",
+      "category": "signals",
+      "executor_supported": true,
+      "args_schema": {
+        "question": "str",
+        "missing": "list[str]? optional"
+      },
+      "risk_default": "none",
+      "notes": "Structured signal to Hermes; not direct chat."
+    },
+    {
+      "name": "report_execution_error",
+      "category": "signals",
+      "executor_supported": true,
+      "args_schema": {
+        "error_type": "str",
+        "details": "str",
+        "recoverable": "bool optional"
+      },
+      "risk_default": "low",
+      "notes": "Structured technical error signal."
+    },
+    {
+      "name": "raise_guardian_event",
+      "category": "signals",
+      "executor_supported": true,
+      "args_schema": {
+        "category": "str",
+        "reason": "str optional",
+        "command_excerpt": "str optional"
+      },
+      "risk_default": "high",
+      "notes": "Structured unsafe/out-of-scope signal to Guardian/Hermes."
+    }
+  ]
+}
