@@ -132,7 +132,7 @@ Para no caer en over-engineering, **la v1 del embodied service NO debe tener**:
 
 - HTTP `POST /intent` con shape canónico (intent + autonomy + allowed_tools? + previous_error?).
 - Lectura de world_state (vía `bot/server.js` por ahora).
-- Llamada a Ollama (`gemma-andy:e4b-v2-q8_0`).
+- Llamada a Ollama (`gemma-andy:e4b-v2-2-3-q8_0`).
 - Despacho de `tool_calls` a `bot/server.js`.
 - Retorno sincrónico con `{plan, execution_results, ok}`.
 - Logs estructurados.
