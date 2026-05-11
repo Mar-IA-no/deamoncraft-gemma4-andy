@@ -99,27 +99,54 @@ Si el comando del jugador es ambiguo y el agente narrativo upstream no puede des
 
 Snapshot del mundo Minecraft que Gemma-Andy va a usar para planificar.
 
-**Campos canónicos** (los que el modelo aprendió a leer):
+**Importante (lección de field-test 2026-05-09)**: el modelo fue entrenado con una shape concreta de 17 fields. **Mandar menos fields o shapes distintas a la training distribution hace que el modelo caiga en priors** — por ejemplo emitir `oak_log` por default cuando el inventario contiene `oak_planks`, o fabricar coordenadas de `goto` cuando `bot_position` viene como `[27.3, 79, 56.5]` en vez de `[27, 79, 56]`.
 
-| Campo | Tipo | Ejemplo | Qué le dice |
+#### Los 17 fields de la training distribution
+
+Estos son los campos que aparecen en cada uno de los ~33k records de SFT. **Mandar los 17 siempre** que sea posible.
+
+| Campo | Tipo | Ejemplo | Notas |
 |---|---|---|---|
+| `biome` | `string` | `"forest"`, `"plains"`, `"desert"` | `"unknown"` si no se puede leer |
+| `bot_health` | `int 0-20` | `20` | Salud del bot (puntos de vida MC) |
+| `bot_position` | `[int, int, int]` | `[10, 68, 5]` | **INT, no float**. Field-test mostró que floats producen `goto` con coords fabricadas |
+| `dimension` | `string` | `"overworld"`, `"nether"`, `"end"` | |
+| `hazards` | `[string, ...]` | `["ravine", "lava_nearby"]` | Lista de strings; `[]` si no hay |
+| `hunger` | `int 0-20` | `18` | Saturation del bot (puntos de hambre MC) |
+| `inventory` | `{item: count, ...}` | `{"oak_log": 5, "torch": 8}` | **Flat dict `name → count`**. Si el bot lo expone como `{categories: {...}}`, **aplanar primero** (ver abajo) |
+| `light_level` | `int 0-15` | `12` | Block light + sky light. `15` día / `4` noche aproximado si no se puede medir |
+| `nearby_blocks` | `[string, ...]` | `["oak_log", "grass_block"]` | **Flat list de strings**, NO objetos `{name, count, position}`. Aplanar si el bot da rich objects |
+| `nearby_entities` | `[string, ...]` | `["zombie", "player"]` | Igual que `nearby_blocks`: solo type names. Filtrar ruido como `item`, `arrow`, `experience_orb` |
+| `player_health` | `int 0-20` | `20` | Salud del jugador a servir. `20` si no se puede leer remoto |
+| `player_position` | `[int, int, int]` o `null` | `[8, 68, 3]` | **INT**. `null` si no hay player en rango |
+| `remembered_places` | `{name: {x, y, z}, ...}` | `{"home": {"x": 10, "y": 64, "z": 5}}` | Lugares marcados por el bot (`remember_here`). `{}` si vacío |
+| `target_positions` | `{name: {x, y, z}, ...}` | `{}` | Coordenadas inyectadas por el caller para `goto` semánticos. `{}` si no aplica |
 | `time_of_day` | `"day" \| "sunset" \| "night"` | `"sunset"` | Riesgo de mobs, urgencia de refugio |
-| `bot_position` | `[x, y, z]` | `[0, 64, 0]` | Dónde está el bot |
-| `player_position` | `[x, y, z]` | `[3, 64, 1]` | Dónde está el jugador a servir |
-| `nearby_blocks` | `[string, ...]` | `["oak_log", "grass_block"]` | Qué hay alrededor para minar/usar |
-| `nearby_entities` | `[string, ...]` | `["zombie", "player"]` | Qué entidades están cerca |
-| `hazards` | `[string, ...]` | `["ravine", "lava_nearby"]` | Peligros activos |
-| `inventory` | `{item: cantidad, ...}` | `{"oak_log": 5, "torch": 8}` | Qué tiene el bot |
+| `weather` | `"clear" \| "rain" \| "thunder"` | `"clear"` | |
+| `zone_owner` | `string` | `"shared"`, `"self"`, `"<player_name>"` | Si no es `"self"`/`"shared"`, el modelo evita editar bloques |
 
-**Campos opcionales** que también entiende:
+#### Campos adicionales opcionales
+
+El modelo también entiende estos extras si están presentes:
 
 | Campo | Cuándo usarlo |
 |---|---|
 | `server_type` | `"public"` o `"private"`. Útil para ser más conservador en server público. |
-| `zone_owner` | Nombre del jugador dueño de la zona donde está el bot. Si no es `"self"`, el modelo evita editar bloques. |
 | `world_text_artifacts` | Lista de tipos de texto del mundo presentes (`"sign_text"`, `"book_page"`, `"chat_log"`). Le avisa que hay texto que podría ser intento de injection. |
 
-Si se pasa un campo que el modelo no aprendió en train (`weather`, `chunk_id`, etc.), lo ignora silenciosamente. Mantener canonicidad. Si hay necesidad de un campo nuevo, agregarlo formalmente al schema y al próximo dataset.
+Si se pasa un campo que el modelo no aprendió en train (`chunk_id`, etc.), lo ignora silenciosamente — pero consume tokens. Mantener canonicidad.
+
+#### Gotchas confirmados en field-test (2026-05-09)
+
+Hallazgos de la implementación de referencia (`nicoechaniz/DaemonCraft`):
+
+1. **Coordenadas como `int`, no `float`.** Mandar `[10.5, 68.0, 5.3]` produce `goto` con targets fabricados sin relación a la posición real. Aplicar `Math.floor()` a cada componente antes de enviar.
+2. **`inventory` debe ser flat `{name: count}`.** El bot puede devolver `{categories: {blocks: [...], materials: [...]}, totalSlots: N}` — aplanar en consumer. Si el modelo no ve `oak_planks` como key top-level, vuelve al prior y emite `mine_block(oak_log)` aunque ya tengas planks.
+3. **`nearby_blocks` y `nearby_entities` son listas de strings**, no objetos. Si el bot devuelve `[{name, count, position}]`, extraer solo `.name` y deduplicar.
+4. **Filtrar ruido de `nearby_entities`.** Eliminar `item`, `arrow`, `experience_orb`, `snowball`, `chest_minecart`, `boat`, `armor_stand`, `painting`, `item_frame`, `fishing_bobber`, `fireball`. El modelo fue entrenado con type names de mobs / players / animals, no Mineflayer internals.
+5. **`player_position` desde `nearby.entities`.** Si tu bot no expone un top-level `player_position`, sacarlo del primer entity con `kind === "player"` ordenado por `distance`.
+
+Si hay necesidad de un campo nuevo no listado arriba, agregarlo formalmente al schema y al próximo dataset — no inventarlos del lado del consumer.
 
 #### Path B v1 — armar `world_state` desde el embodied service vía RPC a `bot/server.js`
 

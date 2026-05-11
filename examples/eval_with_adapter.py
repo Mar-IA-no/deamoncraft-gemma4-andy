@@ -44,10 +44,17 @@ TRAINING_SYSTEM = (
     "multi-step cases, previous_error recovery, or adverse world state."
 )
 
+# Example user payload — 17-field world_state matches the SFT training
+# distribution exactly. Sending fewer fields, or different shapes (nested
+# inventory, rich block objects), makes the model fall back to priors. See
+# docs/INTEGRATION_GUIDE.md §2 "world_state" for the field-test gotchas.
+#
+# Inventory is populated to exercise the realistic case (empty inventory was
+# the previous default but rarely matches a real bot mid-session).
 EXAMPLE_USER = json.dumps({
     "allowed_tools": [
         "scan_nearby", "goto", "mine_block", "collect_drops",
-        "look_around", "ask_clarification", "raise_guardian_event",
+        "craft_item", "ask_clarification", "raise_guardian_event",
     ],
     "guardian_constraints": {
         "autonomy_level": 2,
@@ -61,23 +68,85 @@ EXAMPLE_USER = json.dumps({
     "world_state": {
         "biome": "forest",
         "bot_health": 20,
-        "bot_position": [10, 68, 5],
+        "bot_position": [10, 68, 5],       # INT coords — floats produce fabricated goto targets
         "dimension": "overworld",
         "hazards": [],
         "hunger": 18,
-        "inventory": {},
+        "inventory": {"oak_log": 3, "stone": 12, "stick": 4},  # flat {name: count}
         "light_level": 12,
-        "nearby_blocks": ["oak_log", "oak_leaves", "grass_block", "dirt"],
-        "nearby_entities": ["player"],
+        "nearby_blocks": ["oak_log", "oak_leaves", "grass_block", "dirt"],  # flat list of strings
+        "nearby_entities": ["player"],     # filter noise like 'item', 'arrow', 'experience_orb'
         "player_health": 20,
         "player_position": [8, 68, 3],
-        "remembered_places": {},
+        "remembered_places": {"base": {"x": 0, "y": 64, "z": 0}},
         "target_positions": {},
         "time_of_day": "day",
         "weather": "clear",
         "zone_owner": "shared",
     },
 }, sort_keys=True, ensure_ascii=True)
+
+
+def extract_json(s: str):
+    """Tolerant JSON extractor — handles ~1% of outputs with residual text
+    around the JSON. Strategy ladder, returns the first successful parse:
+
+      1. Whole input.
+      2. Balanced-brace scan from each `{` (respects strings and escapes),
+         finds the first well-formed top-level object.
+      3. Naive first-`{` to last-`}` slice (legacy fallback).
+
+    Returns the parsed object on success, or None if all strategies fail.
+    Cribbed from the reference implementation at
+    nicoechaniz/DaemonCraft:agents/embodied-service/lib/parser.js (which
+    has been hardened against real model outputs in field-test).
+    """
+    if not s:
+        return None
+    try:
+        return json.loads(s)
+    except json.JSONDecodeError:
+        pass
+
+    # Strategy 2: balanced-brace scan.
+    for start in range(len(s)):
+        if s[start] != "{":
+            continue
+        depth = 0
+        in_string = False
+        escape = False
+        for i in range(start, len(s)):
+            c = s[i]
+            if escape:
+                escape = False
+                continue
+            if c == "\\" and in_string:
+                escape = True
+                continue
+            if c == '"':
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    candidate = s[start:i + 1]
+                    try:
+                        return json.loads(candidate)
+                    except json.JSONDecodeError:
+                        break
+
+    # Strategy 3: naive first/last brace.
+    i, j = s.find("{"), s.rfind("}")
+    if i >= 0 and j > i:
+        try:
+            return json.loads(s[i:j + 1])
+        except json.JSONDecodeError:
+            return None
+    return None
 
 
 def main() -> int:
@@ -144,7 +213,18 @@ def main() -> int:
         add_generation_prompt=True,
     ).to(args.device)
 
-    print("[gen] sampling...", file=sys.stderr)
+    # do_sample=False (greedy) is used here for DETERMINISTIC EVAL — same
+    # input always produces same output, useful for smoke tests and A/B
+    # comparison.
+    #
+    # DO NOT use greedy in production. Field-test 2026-05-09 against the
+    # Q8_0-served model showed that temperature=0 collapses multi-step
+    # plans (e.g. "construyamos casa" emits only `scan_nearby`, dropping
+    # the gather+build sequence). Production should use the Ollama
+    # Modelfile defaults (temperature=0.2, top_p=0.9, min_p=0.05,
+    # repeat_penalty=1.05) which are the regime the SFT eval matrix was
+    # measured under. See docs/OLLAMA_USAGE.md.
+    print("[gen] sampling (greedy — eval mode)...", file=sys.stderr)
     with torch.no_grad():
         out = model.generate(
             **encoded,
@@ -172,20 +252,10 @@ def main() -> int:
             print("[think]", think[:200], "..." if len(think) > 200 else "")
             parse_text = parse_text[end + len("</think>"):].strip()
 
-    try:
-        parsed = json.loads(parse_text)
-    except json.JSONDecodeError:
-        # Fallback: find first { and last }
-        i, j = parse_text.find("{"), parse_text.rfind("}")
-        if i >= 0 and j > i:
-            try:
-                parsed = json.loads(parse_text[i:j + 1])
-            except json.JSONDecodeError as e:
-                print(f"[error] could not parse JSON: {e}", file=sys.stderr)
-                return 1
-        else:
-            print("[error] no JSON found in output", file=sys.stderr)
-            return 1
+    parsed = extract_json(parse_text)
+    if parsed is None:
+        print("[error] could not parse JSON from output", file=sys.stderr)
+        return 1
 
     print("=" * 60)
     print("PARSED")

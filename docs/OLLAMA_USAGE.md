@@ -108,14 +108,20 @@ a un único blob JSON. El SYSTEM ya está bakeado en el tag, así que Hermes sol
 ### Request HTTP de Hermes a Ollama
 
 ```bash
+# NOTA: NO override de temperature. El Modelfile pinea temperature=0.2,
+# top_p=0.9, min_p=0.05, repeat_penalty=1.05 — los defaults bajo los que el
+# modelo fue evaluado. Mandar temperature=0 (greedy) en producción colapsa
+# planes multi-step (ej: "construyamos casa" emite solo scan_nearby, drop-ea
+# el gather+build). Confirmado en field-test 2026-05-09 contra
+# gemma-andy:e4b-v2-2-3-q8_0. Greedy solo para eval determinístico.
 curl http://<OLLAMA_HOST>:11434/api/chat -d '{
   "model": "gemma-andy:e4b-v2-2-3-q8_0",
   "stream": false,
-  "options": { "temperature": 0.0, "num_predict": 512 },
+  "options": { "num_predict": 1024 },
   "messages": [
     {
       "role": "user",
-      "content": "{\"allowed_tools\":[\"scan_nearby\",\"goto\",\"mine_block\",\"collect_drops\",\"look_around\",\"ask_clarification\"],\"guardian_constraints\":{\"autonomy_level\":2,\"executor_filtering\":true,\"no_player_harm\":true,\"no_protected_zone_edit\":true,\"no_tnt\":true},\"high_level_command\":\"Trae un poco de madera para construir una mesa de trabajo.\",\"previous_error\":null,\"world_state\":{\"biome\":\"forest\",\"bot_health\":20,\"bot_position\":[10,68,5],\"dimension\":\"overworld\",\"hazards\":[],\"hunger\":18,\"inventory\":{},\"light_level\":12,\"nearby_blocks\":[\"oak_log\",\"oak_leaves\",\"grass_block\",\"dirt\"],\"nearby_entities\":[\"player\"],\"player_health\":20,\"player_position\":[8,68,3],\"remembered_places\":{},\"target_positions\":{},\"time_of_day\":\"day\",\"weather\":\"clear\",\"zone_owner\":\"shared\"}}"
+      "content": "{\"allowed_tools\":[\"scan_nearby\",\"goto\",\"mine_block\",\"collect_drops\",\"craft_item\",\"ask_clarification\",\"raise_guardian_event\"],\"guardian_constraints\":{\"autonomy_level\":2,\"executor_filtering\":true,\"no_player_harm\":true,\"no_protected_zone_edit\":true,\"no_tnt\":true},\"high_level_command\":\"Trae un poco de madera para construir una mesa de trabajo.\",\"previous_error\":null,\"world_state\":{\"biome\":\"forest\",\"bot_health\":20,\"bot_position\":[10,68,5],\"dimension\":\"overworld\",\"hazards\":[],\"hunger\":18,\"inventory\":{\"oak_log\":3,\"stone\":12,\"stick\":4},\"light_level\":12,\"nearby_blocks\":[\"oak_log\",\"oak_leaves\",\"grass_block\",\"dirt\"],\"nearby_entities\":[\"player\"],\"player_health\":20,\"player_position\":[8,68,3],\"remembered_places\":{\"base\":{\"x\":0,\"y\":64,\"z\":0}},\"target_positions\":{},\"time_of_day\":\"day\",\"weather\":\"clear\",\"zone_owner\":\"shared\"}}"
     }
   ]
 }'
@@ -125,7 +131,7 @@ curl http://<OLLAMA_HOST>:11434/api/chat -d '{
 
 ```json
 {
-  "allowed_tools": ["scan_nearby", "goto", "mine_block", "collect_drops", "look_around", "ask_clarification"],
+  "allowed_tools": ["scan_nearby", "goto", "mine_block", "collect_drops", "craft_item", "ask_clarification", "raise_guardian_event"],
   "guardian_constraints": {
     "autonomy_level": 2,
     "executor_filtering": true,
@@ -142,13 +148,13 @@ curl http://<OLLAMA_HOST>:11434/api/chat -d '{
     "dimension": "overworld",
     "hazards": [],
     "hunger": 18,
-    "inventory": {},
+    "inventory": {"oak_log": 3, "stone": 12, "stick": 4},
     "light_level": 12,
     "nearby_blocks": ["oak_log", "oak_leaves", "grass_block", "dirt"],
     "nearby_entities": ["player"],
     "player_health": 20,
     "player_position": [8, 68, 3],
-    "remembered_places": {},
+    "remembered_places": {"base": {"x": 0, "y": 64, "z": 0}},
     "target_positions": {},
     "time_of_day": "day",
     "weather": "clear",
@@ -156,6 +162,14 @@ curl http://<OLLAMA_HOST>:11434/api/chat -d '{
   }
 }
 ```
+
+> **Shape de `inventory`, `nearby_blocks`, `nearby_entities`**: el modelo
+> espera **flat dict `{name: count}`** para inventory y **flat list de
+> strings** para los otros dos. Si el bot upstream devuelve shapes nested
+> (categorías, objetos `{name, count, position}`), **aplanar antes de
+> enviar**. Confirmado en field-test 2026-05-09: enviar shapes ricas hace
+> que el modelo caiga en priors (ej: emite `mine_block(oak_log)` aunque
+> tengas `oak_planks` en inventario).
 
 ### Respuesta esperada de Gemma-Andy
 
