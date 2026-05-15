@@ -105,7 +105,7 @@ def main():
     mlines = []
     mlines.append("# Result manifest — primitives_lab runs 2026-05-15 / 2026-05-16")
     mlines.append("")
-    mlines.append("Trazabilidad reproducible para los runs usados en el pitch. Los JSONs raw viven en `onairam-agent:~/agents/hermes-daemoncraft/daemoncraft/agents/embodied-service/primitives_lab/results/`. SHA256 calculado al momento de generar este manifest.")
+    mlines.append("Trazabilidad reproducible para los runs usados en el pitch. Los JSONs raw fueron capturados en el entorno de field-lab y no se incluyen en este release publico; este manifest conserva filename, variant y sha256 para verificacion dentro del equipo.")
     mlines.append("")
     mlines.append("| Kind | Experiment | File | TS | SHA256 |")
     mlines.append("|---|---|---|---|---|")

@@ -1,6 +1,6 @@
 # Result manifest — sprint Hermes Mitigation v3 (2026-05-15)
 
-Trazabilidad reproducible per-(experiment, variant). Los JSONs raw viven en `onairam-agent:~/agents/hermes-daemoncraft/daemoncraft/agents/embodied-service/primitives_lab/results/`. SHA256 calculado al momento de generar este manifest.
+Trazabilidad reproducible per-(experiment, variant). Los JSONs raw fueron capturados en el entorno de field-lab y no se incluyen en este release publico. Este manifest conserva filename, variant y sha256 para trazabilidad reproducible dentro del equipo.
 
 ## Schema
 

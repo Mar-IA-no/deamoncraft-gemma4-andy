@@ -1,5 +1,5 @@
---- /home/onairam/agents/hermes-daemoncraft/daemoncraft/agents/embodied-service/primitives_lab/runner.py.bak.preExecAware.20260515_181851	2026-05-15 18:18:51.936589026 -0300
-+++ /home/onairam/agents/hermes-daemoncraft/daemoncraft/agents/embodied-service/primitives_lab/runner.py	2026-05-15 18:18:51.936589026 -0300
+--- a/primitives_lab/runner.py
++++ b/primitives_lab/runner.py
 @@ -129,8 +129,30 @@
  
  def score_sample(response: dict, expectations: dict) -> tuple[bool, list[str]]:

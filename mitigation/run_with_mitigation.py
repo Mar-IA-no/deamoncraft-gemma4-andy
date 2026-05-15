@@ -126,8 +126,8 @@ def main():
     p.add_argument("--samples", type=int, help="override samples_per_variant")
     p.add_argument("--deadline", type=int, default=45)
     p.add_argument("--output-dir", type=Path, default=RESULTS_DIR)
-    p.add_argument("--player-name", default=os.getenv("HERMES_PLAYER_NAME", "mariano"))
-    p.add_argument("--bot-name", default=os.getenv("HERMES_BOT_NAME", "onaiclaw_bot"))
+    p.add_argument("--player-name", default=os.getenv("HERMES_PLAYER_NAME", "player"))
+    p.add_argument("--bot-name", default=os.getenv("HERMES_BOT_NAME", "minecraft_bot"))
     args = p.parse_args()
 
     spec = runner.load_experiment(args.experiment)

@@ -42,8 +42,8 @@ L2 y L3 cortan upstream antes de llegar a Gemma. L1, L4, L5 modifican lo que lle
 
 **Config obligatoria**:
 ```python
-PLAYER_NAME = os.getenv("HERMES_PLAYER_NAME", "mariano")
-BOT_NAME = os.getenv("HERMES_BOT_NAME", "onaiclaw_bot")
+PLAYER_NAME = os.getenv("HERMES_PLAYER_NAME", "player")
+BOT_NAME = os.getenv("HERMES_BOT_NAME", "minecraft_bot")
 ```
 
 **Reglas generales template-free**:
@@ -256,4 +256,4 @@ Re-correr experiments con wrapper activo (post-T5 del sprint 2026-05-16). Compar
 - `experiments/gemma_andy_body_smoke/scripts/hermes_policy.py` — implementación reference.
 - internal field validation 2026-05-15 (80 calls n=5 per variant) that motivated this v2.
 
-- Feedback Codex (3 rondas de revisión, plan `mighty-weaving-corbato`) que produjo: outcome tripartite, no hardcodear variants, narrow inventory subcategories, COMMON_SAFE separado de raise_guardian_event, config PLAYER_NAME/BOT_NAME, manifest reproducible.
+- Multi-agent engineering review que produjo: outcome tripartite, no hardcodear variants, narrow inventory subcategories, COMMON_SAFE separado de raise_guardian_event, config PLAYER_NAME/BOT_NAME, manifest reproducible.

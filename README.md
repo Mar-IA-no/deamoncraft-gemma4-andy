@@ -223,9 +223,9 @@ For the full architectural rationale, see
 | Base model size | ~16 GB safetensors (BF16) |
 | Adapter size | ~67 MB safetensors (BF16, LoRA r=16) |
 | Q8_0 GGUF (Ollama) | ~8 GB |
-| GPU VRAM (Q8_0 served) | ~10-14 GB (with `num_ctx=131072`) |
+| GPU VRAM (Q8_0 served) | deployment-dependent; ~10-14 GB observed in the reference setup, higher with large `num_ctx` / parallel slots |
 | GPU VRAM (BF16 + adapter direct) | ~18-20 GB |
-| Inference latency | ~100-500 ms per JSON response on RTX 3090 |
+| Observed latency | ~3-10 s per body-planning request in the live Ollama + Mineflayer field harness (varies with prompt length, `num_ctx`, warm state, and bot action latency) |
 
 ---
 

@@ -91,7 +91,7 @@ class HermesPolicy:
     # Sub-intents que SOLO comienzan con estas frases son CONSTRAINTS/modifiers,
     # no nuevas acciones — se mergean con el sub-intent anterior (correción Codex 2026-05-15).
     # Examples that should NOT be separate sub-intents:
-    #   "Stop within 3 blocks." (after "Find and approach mariano")
+    #   "Stop within 3 blocks." (after "Find and approach the player")
     #   "Avoid hazards along the way."
     #   "Without harming the animals."
     CONSTRAINT_LEAD = re.compile(
@@ -160,8 +160,8 @@ class HermesPolicy:
         if requests is None:
             raise RuntimeError("requests package required")
         self.url = embodied_service_url.rstrip("/")
-        self.player_name = player_name or os.getenv("HERMES_PLAYER_NAME", "mariano")
-        self.bot_name = bot_name or os.getenv("HERMES_BOT_NAME", "onaiclaw_bot")
+        self.player_name = player_name or os.getenv("HERMES_PLAYER_NAME", "player")
+        self.bot_name = bot_name or os.getenv("HERMES_BOT_NAME", "minecraft_bot")
 
     # ─── Layer 2 ──────────────────────────────────────────────
     def is_out_of_scope(self, intent: str) -> tuple[bool, str | None]:
@@ -264,7 +264,7 @@ class HermesPolicy:
         # Compact whitespace
         n = re.sub(r"\s+", " ", n).strip()
         # Replace pronouns if remaining. Use specific patterns including the trailing
-        # player name to avoid duplicates ("of the player named mariano mariano").
+        # player name to avoid duplicates ("of the player named player player").
         # First try "X jugador llamado <name>" / "X jugador <name>" with trailing name capture.
         player_re = re.escape(self.player_name)
         n = re.sub(rf"\bdel jugador(?:\s+llamado)?\s+{player_re}\b", f"of the player named {self.player_name}", n, flags=re.IGNORECASE)
@@ -395,7 +395,7 @@ class HermesPolicy:
 
 # ─── CLI / unit tests ─────────────────────────────────────────
 def _unit_tests():
-    p = HermesPolicy("http://localhost:7790", player_name="mariano", bot_name="onaiclaw_bot")
+    p = HermesPolicy("http://localhost:7790", player_name="player", bot_name="minecraft_bot")
 
     assert p.is_out_of_scope("Contame un chiste corto")[0] is True
     assert p.is_out_of_scope("Hola, ¿cómo estás?")[0] is True
@@ -435,7 +435,7 @@ def _unit_tests():
     print(f"L1 normalize OK: {norm!r}")
 
     norm2 = p.normalize_surface("ven aca")
-    assert "Follow the player named mariano" in norm2, norm2
+    assert "Follow the player named player" in norm2, norm2
     print(f"L1 bare-come OK: {norm2!r}")
 
     print()

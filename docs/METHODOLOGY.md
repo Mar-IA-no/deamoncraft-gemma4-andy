@@ -46,7 +46,7 @@ non-negotiable. Hypothesis without measurement is folklore.
 
 ### Stage 4 — Live field validation (this work)
 80 calls in a single session, distributed across four `primitives_lab`
-experiments (n=5 per variant, 16 variants total). Mariano in a Java client
+experiments (n=5 per variant, 16 variants total). A human observer in a Java client
 visually confirmed bot behavior in Minecraft.
 
 This is where we found the bugs that even external benchmarks missed:
@@ -72,7 +72,7 @@ For each gap we found, we asked the same four questions in order:
 
 ### Q1 — Is it a model bug or a measurement bug?
 
-The `toss_apple` case: 5/5 PASS reported, but the user (mariano) saw the
+The `toss_apple` case: 5/5 PASS reported, but the human observer saw the
 bot toss → pick up → toss → pick up. The model emitted `toss_item`
 correctly each time. The bot dispatched correctly. The bug was in the
 runner: it counted "the tool was emitted" as success, never checked
@@ -185,8 +185,7 @@ always be reported as separate components.
 ## 5. The iteration loop (4 rounds of multi-agent review)
 
 The 5-layer design didn't arrive whole. It went through four review cycles
-with two agent reviewers (a Codex-flavored reviewer for engineering rigor
-and a Claude-flavored implementer for execution) over a single working
+with separate reviewer/implementer agents over a single working
 session. Each round surfaced corrections:
 
 **Round 1** — initial proposal: "no retrain, mitigation upstream". Reviewer
@@ -240,7 +239,7 @@ Six layers running in parallel:
 3. **Visual confirmation** by a human in a Java Minecraft client —
    the only source of truth for "did the bot actually do it"
    (caught the `toss_apple` auto-pickup bug).
-4. **RCON over the MC server** for snapshots (`/data get entity`,
+4. **Server console / RCON over the MC server** for snapshots (`/data get entity`,
    `/list`, `/tp`, `/kill @e[type=item,distance=..15]`) — for
    pre-test environment reset and post-test state inspection.
 5. **HTTP `/health` and `/status`** on the bot and embodied service —
