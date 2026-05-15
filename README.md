@@ -15,6 +15,34 @@ LoRA adapter and integration documentation for **Gemma-Andy**, a fine-tuned
 
 ---
 
+## About this project
+
+This adapter is part of an embodied-companion architecture for
+Minecraft. The design splits cognition (handled by an upstream
+conversational agent) from embodiment (handled by Gemma-Andy → JSON
+tool calls → Mineflayer bot). The goal: a companion that can work
+locally on consumer hardware, listen to children's open-ended ideas,
+and act in a shared world without sending everything to the cloud.
+
+Three docs explain the wider context:
+
+- **[`docs/PROJECT_BACKGROUND.md`](./docs/PROJECT_BACKGROUND.md)** —
+  origin, problem statement, ecosystem context, contributors.
+- **[`docs/METHODOLOGY.md`](./docs/METHODOLOGY.md)** — how this adapter
+  was debugged, the 5-layer policy reasoning, the X/Y/Z measurement
+  framework, the multi-agent review loop.
+- **[`docs/ROADMAP.md`](./docs/ROADMAP.md)** — what's done, what's in
+  progress, what's parking-lot.
+
+Two more cover the field-validated reliability and reproducibility:
+
+- **[`docs/MITIGATION_RESULTS.md`](./docs/MITIGATION_RESULTS.md)** —
+  X/Y/Z reliability per primitive measured in live Minecraft.
+- **[`docs/RESULT_MANIFEST.md`](./docs/RESULT_MANIFEST.md)** — sha256
+  manifest of every result file used to compile those numbers.
+
+---
+
 ## Quickstart
 
 ### 1. Get the base model
@@ -80,11 +108,17 @@ Full Ollama usage with sample request and response in
 ├── README.md                    ← you are here
 ├── LICENSE                      ← Apache 2.0 (code, docs, data)
 │
-├── docs/                          ← integration documentation
+├── docs/
+│   │   ── context (start here for new readers)
+│   ├── PROJECT_BACKGROUND.md      ← what / why / who / where it fits
+│   ├── METHODOLOGY.md             ← the engineering process + 5-layer reasoning
+│   ├── ROADMAP.md                 ← done / next / parking lot
+│   │   ── integration documentation
 │   ├── OLLAMA_USAGE.md            ← quickstart with end-to-end example
 │   ├── INTEGRATION_GUIDE.md       ← full I/O contract, rules, examples by case
 │   ├── INTEGRATION_OPTIONS.md     ← architecture (embodied service vs tool)
 │   ├── TOOLS_NOT_IMPLEMENTED.md   ← filter allowed_tools by executor support
+│   │   ── Hermes-side mitigation policy
 │   ├── INTENT_NORMALIZATION_V1.md ← Layer 1 contract: how to phrase intents
 │   ├── HERMES_MITIGATION_V2.md    ← 5-layer policy upstream pattern
 │   ├── MITIGATION_RESULTS.md      ← measured X/Y/Z reliability per primitive
