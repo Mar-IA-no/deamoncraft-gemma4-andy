@@ -176,7 +176,7 @@ def main():
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     # Include microseconds + variant slug to avoid filename collisions when running
-    # multiple variants back-to-back (Codex correction 2026-05-15).
+    # multiple variants back-to-back (review correction 2026-05-15).
     ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     variant_slug = ""
     if args.variant:

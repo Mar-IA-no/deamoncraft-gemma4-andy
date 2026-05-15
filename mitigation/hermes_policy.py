@@ -89,7 +89,7 @@ class HermesPolicy:
         re.IGNORECASE,
     )
     # Sub-intents que SOLO comienzan con estas frases son CONSTRAINTS/modifiers,
-    # no nuevas acciones — se mergean con el sub-intent anterior (correción Codex 2026-05-15).
+    # no nuevas acciones — se mergean con el sub-intent anterior (review correction 2026-05-15).
     # Examples that should NOT be separate sub-intents:
     #   "Stop within 3 blocks." (after "Find and approach the player")
     #   "Avoid hazards along the way."
@@ -204,7 +204,7 @@ class HermesPolicy:
 
         If a candidate sub-intent starts with a constraint marker
         (stop within, avoid, do not, etc.), it's MERGED with the previous
-        sub-intent rather than separated. (Codex correction 2026-05-15.)
+        sub-intent rather than separated. (review correction 2026-05-15.)
         """
         if not intent:
             return []

@@ -49,7 +49,7 @@ upstream policy currently mitigates. Next training cycle:
 - Add an explicit recovery slice with verified cause-effect pairs
   (current `previous_error` is populated but the model doesn't learn
   to act on it; needs supervised pairs of failed-call → correct-recovery).
-- Re-evaluate against Fede's `iter4-e` suite as held-out external benchmark.
+- Re-evaluate against the external `iter4-e` suite as a held-out benchmark.
 
 If v2.2.4 closes the upstream policy gaps at the model level, the
 upstream policy can shrink (or be retired) for those cases — but the

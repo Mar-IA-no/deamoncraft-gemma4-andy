@@ -24,10 +24,9 @@ Showed the adapter worked at JSON-level (json_valid ~100%, tool whitelisting
 respected). What this stage *can't* see: surface-form bias, multi-step
 ordering, ambiguity discrimination.
 
-### Stage 2 — External field signal (`primitives_lab` by Fede654)
-A third party ran ~500 calls against the deployed Q8_0 model with their own
-benchmark harness. The numbers were sobering: 18% overall pass rate, with
-specific failure modes:
+### Stage 2 — External field signal (independent `primitives_lab` benchmark)
+An external benchmark harness ran ~500 calls against the deployed Q8_0 model.
+The numbers were sobering: 18% overall pass rate, with specific failure modes:
 - Spanish surface form: 5/100 vs English 100/100 (20× gap)
 - Recovery from `previous_error`: 3/240 (1.3%)
 - Multi-step plans: low pass
@@ -138,7 +137,7 @@ Why this order:
   and its own category classification — they can have different `allowed_tools`.
 - L1 must run *before* L4 because the classifier looks at normalized text
   (English keywords like `mine`, `equip`, `goto`).
-- Constraint detection in L5 (Codex correction) prevents over-decomposition
+- Constraint detection in L5 (review correction) prevents over-decomposition
   of clauses like "Stop within 3 blocks" or "Avoid hazards" — those are
   modifiers of the previous action, not new actions.
 
@@ -190,7 +189,7 @@ session. Each round surfaced corrections:
 
 **Round 1** — initial proposal: "no retrain, mitigation upstream". Reviewer
 corrected the framing: "mitigable / avoidable for the demo, not 'resolved'".
-Adopted: the model is not arrearing — the system is composed differently.
+Adopted: the policy does not change the model weights — the system is composed differently.
 
 **Round 2** — wrapper design. Reviewer objected to hardcoding the 17 known
 test variants in lookup tables ("that's recognizing the exam, not

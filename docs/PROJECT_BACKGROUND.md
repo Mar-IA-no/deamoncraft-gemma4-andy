@@ -154,13 +154,13 @@ Cross-referenced repositories that made this possible:
   whose released data informed the SFT training mix.
 
 The fine-tune itself was developed by **Mar-IA-no** (training pipeline,
-dataset curation, evaluation harness). Field-test instrumentation and the
-[`primitives_lab`](https://github.com/nicoechaniz/DaemonCraft/tree/main/agents/embodied-service/primitives_lab)
-suite by Fede654 surfaced the surface-form bias and recovery gaps that
-motivated the upstream policy layer.
+dataset curation, evaluation harness). External field-test instrumentation
+and the [`primitives_lab`](https://github.com/nicoechaniz/DaemonCraft/tree/main/agents/embodied-service/primitives_lab)
+suite surfaced the surface-form bias and recovery gaps that motivated the
+upstream policy layer.
 
 The 5-layer Hermes mitigation policy documented in
 [`HERMES_MITIGATION_V2.md`](./HERMES_MITIGATION_V2.md) and
 implemented in [`mitigation/`](../mitigation/) was developed in a
-multi-agent collaboration cycle (Codex + Claude code reviewers, four
-iterative rounds of plan revision).
+multi-agent collaboration cycle with separate reviewer and implementer agents
+across four iterative rounds of plan revision.
