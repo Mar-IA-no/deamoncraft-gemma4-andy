@@ -80,32 +80,68 @@ Full Ollama usage with sample request and response in
 ├── README.md                    ← you are here
 ├── LICENSE                      ← Apache 2.0 (code, docs, data)
 │
-├── docs/                        ← integration documentation
-│   ├── OLLAMA_USAGE.md          ← quickstart with end-to-end example
-│   ├── INTEGRATION_GUIDE.md     ← full I/O contract, rules, examples by case
-│   ├── INTEGRATION_OPTIONS.md   ← architecture (embodied service vs tool)
-│   └── TOOLS_NOT_IMPLEMENTED.md ← filter allowed_tools by executor support
+├── docs/                          ← integration documentation
+│   ├── OLLAMA_USAGE.md            ← quickstart with end-to-end example
+│   ├── INTEGRATION_GUIDE.md       ← full I/O contract, rules, examples by case
+│   ├── INTEGRATION_OPTIONS.md     ← architecture (embodied service vs tool)
+│   ├── TOOLS_NOT_IMPLEMENTED.md   ← filter allowed_tools by executor support
+│   ├── INTENT_NORMALIZATION_V1.md ← Layer 1 contract: how to phrase intents
+│   ├── HERMES_MITIGATION_V2.md    ← 5-layer policy upstream pattern
+│   ├── MITIGATION_RESULTS.md      ← measured X/Y/Z reliability per primitive
+│   └── RESULT_MANIFEST.md         ← reproducibility manifest (sha256 per result)
 │
-├── schema/                      ← source-of-truth tool definitions
-│   ├── tool_schema_v2.json      ← 68 tools, current target
-│   ├── tool_schema_v1.json      ← 15 tools, historical
-│   └── guardian_policy.json     ← hard rules + autonomy levels
+├── schema/                        ← source-of-truth tool definitions
+│   ├── tool_schema_v2.json        ← 68 tools, current target
+│   ├── tool_schema_v1.json        ← 15 tools, historical
+│   └── guardian_policy.json       ← hard rules + autonomy levels
 │
-├── adapter/                     ← LoRA adapter (~100 MB)
-│   ├── README.md                ← model card
+├── adapter/                       ← LoRA adapter (~100 MB)
+│   ├── README.md                  ← model card
 │   ├── adapter_model.safetensors
 │   ├── adapter_config.json
 │   ├── chat_template.jinja
 │   ├── tokenizer.json
 │   └── tokenizer_config.json
 │
-├── ollama/                      ← deployment via Ollama
-│   ├── Modelfile                ← template (edit FROM path before use)
-│   └── build.sh                 ← end-to-end pipeline: merge → GGUF → tag
+├── ollama/                        ← deployment via Ollama
+│   ├── Modelfile                  ← template (edit FROM path before use)
+│   └── build.sh                   ← end-to-end pipeline: merge → GGUF → tag
+│
+├── mitigation/                    ← Hermes-side policy reference implementation
+│   ├── hermes_policy.py           ← 5-layer policy class (scope/ambiguity/normalize/narrow_tools/decompose)
+│   ├── run_with_mitigation.py     ← primitives_lab runner with policy wrapper
+│   ├── compare_results.py         ← pre/post comparison + outcome tripartite
+│   ├── regrade_json.py            ← retroactive execution-aware reclassification
+│   └── runner_patch.diff          ← patch to upstream primitives_lab runner.py
 │
 └── examples/
-    └── eval_with_adapter.py     ← runnable example via PEFT (no Ollama)
+    └── eval_with_adapter.py       ← runnable example via PEFT (no Ollama)
 ```
+
+---
+
+## Mitigation reference implementation (new — 2026-05-15)
+
+If you're integrating Gemma-Andy into a system that has an upstream LLM agent
+(Hermes, GPT, Claude, etc.), the [`mitigation/`](./mitigation/) folder
+provides a reference implementation of a **5-layer policy** that:
+
+1. **Filters out** non-body intents (chat, jokes, abstract questions) before
+   they reach Gemma-Andy.
+2. **Asks for clarification** when intents are ambiguous, instead of letting
+   the model guess.
+3. **Decomposes** multi-step intents into atomic sub-intents that the model
+   handles reliably.
+4. **Normalizes** Spanish/narrative intents to English imperative inline
+   form, the canonical SFT shape.
+5. **Narrows the `allowed_tools`** per intent category, preventing the model
+   from emitting incoherent tool chains.
+
+Measured impact on 9 critical Tier 1 variants (45 calls, n=5 per variant):
+**+13 pass-rate points vs unmitigated baseline, zero regressions**. See
+[`docs/MITIGATION_RESULTS.md`](./docs/MITIGATION_RESULTS.md) and
+[`docs/HERMES_MITIGATION_V2.md`](./docs/HERMES_MITIGATION_V2.md) for the full
+methodology, layer-by-layer specification, and per-variant breakdown.
 
 ---
 

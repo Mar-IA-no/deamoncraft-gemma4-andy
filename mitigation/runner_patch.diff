@@ -1,0 +1,98 @@
+--- /home/onairam/agents/hermes-daemoncraft/daemoncraft/agents/embodied-service/primitives_lab/runner.py.bak.preExecAware.20260515_181851	2026-05-15 18:18:51.936589026 -0300
++++ /home/onairam/agents/hermes-daemoncraft/daemoncraft/agents/embodied-service/primitives_lab/runner.py	2026-05-15 18:18:51.936589026 -0300
+@@ -129,8 +129,30 @@
+ 
+ def score_sample(response: dict, expectations: dict) -> tuple[bool, list[str]]:
+     """Apply the experiment's expectations to a single response.
+-    Returns (passed, list_of_failure_reasons)."""
++    Returns (passed, list_of_failure_reasons).
++
++    Modes:
++      1. policy_handled_upstream=True in expectations → check Hermes handled it upstream
++      2. Otherwise → traditional plan/tool_calls + execution_results-aware checks
++    """
+     failures: list[str] = []
++
++    # Mode 1 — variant expected to be handled upstream by Hermes policy
++    expect_policy_handled = expectations.get("policy_handled_upstream", False)
++    expect_policy_layer = expectations.get("policy_layer")
++    if expect_policy_handled:
++        if not response.get("policy_handled"):
++            failures.append(
++                f"expected policy_handled_upstream but embodied was called "
++                f"(outcome={response.get('outcome','?')})"
++            )
++        elif expect_policy_layer and response.get("policy_layer") != expect_policy_layer:
++            failures.append(
++                f"expected policy_layer={expect_policy_layer}, got {response.get('policy_layer')}"
++            )
++        return (not failures), failures
++
++    # Mode 2 — traditional expectations
+     plan = response.get("plan") or {}
+     tool_names = [t.get("name") for t in plan.get("tool_calls", [])]
+     mitigations = response.get("mitigations") or []
+@@ -172,6 +194,18 @@
+         if actual_risk not in expected_risk:
+             failures.append(f"operational_risk={actual_risk} not in {expected_risk}")
+ 
++    # Execution-aware: every dispatched tool_call must have ok=true (default required)
++    if expectations.get("require_bot_execution", True):
++        exec_results = response.get("execution_results") or []
++        failed = [er for er in exec_results if not er.get("ok")]
++        if failed:
++            err_types = sorted({er.get("error_type", "unknown") for er in failed})
++            excerpts = [(er.get("details") or "")[:80] for er in failed[:3]]
++            failures.append(
++                f"bot_execution_failed: {len(failed)}/{len(exec_results)} tool_calls ok=false "
++                f"(error_types={err_types}; first details: {excerpts})"
++            )
++
+     return (not failures), failures
+ 
+ 
+@@ -184,11 +218,25 @@
+         wall = time.time() - t0
+         passed, failures = score_sample(resp, expectations)
+         plan = resp.get("plan") or {}
++        # Compute outcome (tripartite)
++        if resp.get("policy_handled"):
++            outcome = "policy_handled_upstream"
++        else:
++            exec_results = resp.get("execution_results") or []
++            if resp.get("ok") and exec_results and all(er.get("ok") for er in exec_results):
++                outcome = "embodied_succeeded"
++            elif resp.get("ok") and not exec_results:
++                # Embodied returned ok=true but no execution results — treat as failed
++                outcome = "embodied_failed"
++            else:
++                outcome = "embodied_failed"
+         samples_data.append({
+             "iter": i + 1,
+             "wall_elapsed_s": round(wall, 2),
+             "service_elapsed_s": resp.get("elapsed_seconds"),
+             "ok": resp.get("ok"),
++            "outcome": outcome,
++            "policy_layer": resp.get("policy_layer"),
+             "passed": passed,
+             "failures": failures,
+             "tool_names": [t.get("name") for t in plan.get("tool_calls", [])],
+@@ -196,6 +244,7 @@
+             "operational_risk": plan.get("operational_risk"),
+             "mitigations": [m.get("regression") for m in (resp.get("mitigations") or [])],
+             "had_think": bool(resp.get("think")),
++            "execution_results": resp.get("execution_results") or [],
+         })
+     return {
+         "id": variant["id"],
+@@ -301,7 +350,9 @@
+             extras = []
+             if s["mitigations"]: extras.append(f"mit={s['mitigations']}")
+             if s["failures"]: extras.append(f"fail={s['failures']}")
+-            print(f"    {mark} #{s['iter']} {s['service_elapsed_s']:.1f}s tools={s['tool_names']} {' '.join(extras)}")
++            elapsed_s = s.get('service_elapsed_s')
++            elapsed_str = f"{elapsed_s:.1f}s" if isinstance(elapsed_s, (int, float)) else str(elapsed_s)
++            print(f"    {mark} #{s['iter']} {elapsed_str} tools={s['tool_names']} {' '.join(extras)}")
+ 
+     # Save full output
+     args.output_dir.mkdir(parents=True, exist_ok=True)
